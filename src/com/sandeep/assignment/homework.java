@@ -264,6 +264,8 @@ public class homework {
 
 	private boolean resolution(CompoundSentence querySentence, Map<String, Partition> copiedKb) {
 
+		boolean answer = false;
+
 		Stack<CompoundSentence> dfsStack = new Stack<>();
 		copiedKb = tellKb(copiedKb, querySentence);
 		dfsStack.push(querySentence);
@@ -271,14 +273,105 @@ public class homework {
 		while (!dfsStack.isEmpty() && iterationLimit > 0) {
 			// sort the list based on the number of arguments in predicate
 			List<Predicate> sortedPredicateList = getSortedPredicateList(querySentence.getCompoundSentence());
-			for (Predicate predicate : sortedPredicateList) {
-				List<CompoundSentence> matchedSentences = getMatchedSentences(predicate, copiedKb);
-				
+			for (int i = 0; i < sortedPredicateList.size(); i++) {
+				List<Predicate> remainingPredicateListinQuery = getRemainingPredicateList(sortedPredicateList, i);
+				List<CompoundSentence> matchedSentences = getMatchedSentences(sortedPredicateList.get(i), copiedKb);
+				for (CompoundSentence compoundSentence : matchedSentences) {
+					int unifiedListIndex = getUnifiedPredicateFromSentence(sortedPredicateList.get(i),
+							compoundSentence);
+					Predicate matchedPredicate = compoundSentence.getCompoundSentence().get(unifiedListIndex);
+					List<Predicate> unmatchedPredicatedListInSentence = getRemainingPredicateList(
+							compoundSentence.getCompoundSentence(), i);
+
+					Map<String, String> theta = new HashMap<>();
+					theta = unify(sortedPredicateList.get(i), matchedPredicate, theta);
+					if (theta != null) {
+						printUnification(sortedPredicateList.get(i), matchedPredicate, theta);
+					} else {
+						System.out.println("theta is null");
+					}
+
+					if (theta != null && remainingPredicateListinQuery.isEmpty()
+							&& unmatchedPredicatedListInSentence.isEmpty()) {
+						answer = true;
+						System.out.println(answer);
+						return answer;
+					}
+
+					else if (theta != null) {
+
+						remainingPredicateListinQuery.addAll(unmatchedPredicatedListInSentence);
+						CompoundSentence resolvedSentence = substitute(remainingPredicateListinQuery, theta);
+					}
+
+				}
+
 			}
 
 		}
 
 		return false;
+	}
+
+	private CompoundSentence substitute(List<Predicate> remainingPredicateListinQuery, Map<String, String> theta) {
+
+		
+		
+		
+		return null;
+	}
+
+	private void printUnification(Predicate predicate, Predicate matchedPredicate, Map<String, String> theta) {
+
+		System.out.print(predicate.isNegated() ? "~" : "");
+		System.out.print(predicate.getFunctionName() + "(");
+		for (String string : predicate.getArguments()) {
+			System.out.print(string + ",");
+		}
+		System.out.print(")");
+
+		System.out.println();
+
+		System.out.print(matchedPredicate.isNegated() ? "~" : "");
+		System.out.print(matchedPredicate.getFunctionName() + "(");
+		for (String string : matchedPredicate.getArguments()) {
+			System.out.print(string + ",");
+		}
+		System.out.print(")");
+
+		theta.forEach((k, v) -> {
+			System.out.println(k + v);
+		});
+
+	}
+
+	private int getUnifiedPredicateFromSentence(Predicate predicate, CompoundSentence compoundSentence) {
+
+		List<Predicate> predicateList = compoundSentence.getCompoundSentence();
+
+		for (int i = 0; i < predicateList.size(); i++) {
+			if (predicateList.get(i).getFunctionName().equals(predicate.getFunctionName())) {
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	private List<Predicate> getRemainingPredicateList(List<Predicate> sortedPredicateList, int i) {
+
+		List<Predicate> clonedList = cloneList(sortedPredicateList);
+		clonedList.remove(i);
+		return clonedList;
+	}
+
+	private List<Predicate> cloneList(List<Predicate> baseList) {
+
+		List<Predicate> newList = new ArrayList<>();
+		for (int i = 0; i < baseList.size(); i++) {
+			newList.add(baseList.get(i));
+		}
+		return newList;
 	}
 
 	private List<CompoundSentence> getMatchedSentences(Predicate predicate, Map<String, Partition> copiedKb) {
