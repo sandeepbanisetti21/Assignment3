@@ -291,6 +291,8 @@ public class homework {
 						System.out.println("theta is null");
 					}
 
+					theta = handleLoops(theta);
+
 					if (theta != null && remainingPredicateListinQuery.isEmpty()
 							&& unmatchedPredicatedListInSentence.isEmpty()) {
 						answer = true;
@@ -299,7 +301,6 @@ public class homework {
 					}
 
 					else if (theta != null) {
-
 						remainingPredicateListinQuery.addAll(unmatchedPredicatedListInSentence);
 						CompoundSentence resolvedSentence = substitute(remainingPredicateListinQuery, theta);
 					}
@@ -313,11 +314,36 @@ public class homework {
 		return false;
 	}
 
+	private Map<String, String> handleLoops(Map<String, String> theta) {
+
+		if (theta != null) {
+			int count = 1;
+			int limit = 100;
+
+			while (count < limit) {
+				boolean isCycleThetaExists = false;
+				theta.forEach((k, v) -> {
+					if (theta.get(v) != null) {
+						theta.put(k, theta.get(v));
+						makebooleanTrue(isCycleThetaExists);
+					}
+				});
+				if (!isCycleThetaExists) {
+					break;
+				}
+			}
+			return theta;
+		}
+		return null;
+	}
+
+	private boolean makebooleanTrue(boolean isCycleThetaExists) {
+		return isCycleThetaExists = true;
+
+	}
+
 	private CompoundSentence substitute(List<Predicate> remainingPredicateListinQuery, Map<String, String> theta) {
 
-		
-		
-		
 		return null;
 	}
 
