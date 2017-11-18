@@ -32,9 +32,9 @@ public class homework {
 
 	private void run() {
 		readInput();
-		printInput();
+		// printInput();
 		createKb();
-		printKb();
+		// printKb();
 		findSolution();
 		processOutput();
 	}
@@ -43,7 +43,8 @@ public class homework {
 
 		Map<String, Partition> copiedKb = new HashMap<>();
 		sourcekb.forEach((k, v) -> {
-			copiedKb.put(k, new Partition(v.getPositiveSentences(), v.getNegativeSentences()));
+			copiedKb.put(k, new Partition(cloneCompoundSentenceList(v.getPositiveSentences()),
+					cloneCompoundSentenceList(v.getNegativeSentences())));
 		});
 		return copiedKb;
 	}
@@ -118,19 +119,26 @@ public class homework {
 	}
 
 	private void findSolution() {
+		// System.out.println("Before");
+		// printKb();
 		for (String query : queries) {
 			Map<String, Partition> copiedKb = deepCopy(kb);
+			// System.out.println("size of kb " + kb.size());
+			// System.out.println("size of copied kb " + copiedKb.size());
 			Predicate queryPredicate = processPredicateString(query);
 			queryPredicate = negate(queryPredicate);
-			System.out.println("Query predicate is ");
-			printPredicate(queryPredicate);
+			// System.out.println("Query predicate is ");
+			// printPredicate(queryPredicate);
 			List<Predicate> queryPredicateList = new ArrayList<>();
 			queryPredicateList.add(queryPredicate);
 			CompoundSentence querySentence = new CompoundSentence(queryPredicateList);
 			boolean solution = resolution(querySentence, copiedKb);
 			solutions.add(solution ? "TRUE" : "FALSE");
-			System.out.println("solution is " + solution);
+			// System.out.println("solution is " + solution);
 		}
+		// System.out.println("After");
+		// printKb();
+		// System.out.println("size of kb after " + kb.size());
 	}
 
 	private Map<String, Partition> tellKb(Map<String, Partition> copiedKb, CompoundSentence query) {
@@ -158,9 +166,10 @@ public class homework {
 		List<CompoundSentence> dfsList = new ArrayList<>();
 		copiedKb = tellKb(copiedKb, querySentence);
 		dfsList.add(querySentence);
-		int iterationLimit = 4000;
-		while (!dfsList.isEmpty() && iterationLimit > 0) {
-			iterationLimit--;
+		int iteration = 0;
+		while (!dfsList.isEmpty() && iteration < 1000) {
+			iteration++;
+			// System.out.println("Iteration is" + iteration);
 			int index = pickOneWithLeastNumberOfPredicates(dfsList);
 			CompoundSentence currentSentence = dfsList.remove(index);
 			List<Predicate> sortedPredicateList = currentSentence.getCompoundSentence();
@@ -178,14 +187,20 @@ public class homework {
 					theta = unify(predicate, matchedPredicate, theta);
 					theta = handleLoops(theta);
 
+					// printUnification(currentSentence, compoundSentence, predicate,
+					// matchedPredicate, theta);
+
 					if (theta != null && remainingPredicateListinQuery.isEmpty()
 							&& unmatchedPredicatedListInSentence.isEmpty()) {
 						answer = true;
 						return answer;
 					} else if (theta != null) {
-						remainingPredicateListinQuery.addAll(unmatchedPredicatedListInSentence);
-						CompoundSentence resolvedSentence = substitute(remainingPredicateListinQuery, theta);
+						List<Predicate> additionalList = new ArrayList<>();
+						additionalList.addAll(remainingPredicateListinQuery);
+						additionalList.addAll(unmatchedPredicatedListInSentence);
+						CompoundSentence resolvedSentence = substitute(additionalList, theta);
 						resolvedSentence = getStandardSentence(resolvedSentence);
+						// System.out.println("Resolved:[" + resolvedSentence.toString() + "]");
 
 						if (resolvedList.get(resolvedSentence.toString()) == null) {
 							dfsList.add(resolvedSentence);
@@ -193,10 +208,66 @@ public class homework {
 							resolvedList.put(resolvedSentence.toString(), true);
 						}
 					}
+					// printList(dfsList);
+					// printMap(resolvedList);
 				}
 			}
+			// System.out.println(
+			// "******************************************************************************************************************");
 		}
 		return answer;
+	}
+
+	private void printMap(Map<String, Boolean> resolvedList) {
+
+		System.out.print("Current visited");
+		resolvedList.forEach((k, v) -> {
+			System.out.print("[");
+			System.out.print(k);
+			System.out.print("]");
+			System.out.print(",");
+		});
+		System.out.println();
+		System.out.println(
+				"-----------------------------------------------------------------------------------------------------------------");
+	}
+
+	private void printList(List<CompoundSentence> dfsList) {
+
+		System.out.print("Current Stack:");
+		for (CompoundSentence compoundSentence : dfsList) {
+			System.out.print("[");
+			System.out.print(compoundSentence.toString());
+			System.out.print("]");
+			System.out.print(",");
+		}
+		System.out.println();
+	}
+
+	private void printUnification(CompoundSentence currentSentence, CompoundSentence compoundSentence,
+			Predicate predicate, Predicate matchedPredicate, Map<String, String> theta) {
+
+		System.out.print("Unification: ");
+		System.out.print("[" + currentSentence.toString() + "] ");
+		System.out.print("[" + compoundSentence.toString() + "] ");
+		System.out.print("[" + predicate.toString() + "] ");
+		System.out.print("[" + matchedPredicate.toString() + "] ");
+		printTheta(theta);
+		System.out.println();
+	}
+
+	private void printTheta(Map<String, String> theta) {
+
+		if (theta == null) {
+			System.out.print("{ None }");
+		} else {
+			theta.forEach((k, v) -> {
+				System.out.print("{");
+				System.out.print(k + ":" + v);
+				System.out.print(",");
+				System.out.print("}");
+			});
+		}
 	}
 
 	private int pickOneWithLeastNumberOfPredicates(List<CompoundSentence> dfsList) {
@@ -278,12 +349,13 @@ public class homework {
 
 		List<Predicate> predicateList = compoundSentence.getCompoundSentence();
 
+		int x = -1;
 		for (int i = 0; i < predicateList.size(); i++) {
 			if (predicateList.get(i).getFunctionName().equals(predicate.getFunctionName())) {
-				return i;
+				x = i;
 			}
 		}
-		return -1;
+		return x;
 	}
 
 	private List<Predicate> getRemainingPredicateList(List<Predicate> sortedPredicateList, int i) {
@@ -296,6 +368,15 @@ public class homework {
 	private List<Predicate> cloneList(List<Predicate> baseList) {
 
 		List<Predicate> newList = new ArrayList<>();
+		for (int i = 0; i < baseList.size(); i++) {
+			newList.add(baseList.get(i));
+		}
+		return newList;
+	}
+
+	private List<CompoundSentence> cloneCompoundSentenceList(List<CompoundSentence> baseList) {
+
+		List<CompoundSentence> newList = new ArrayList<>();
 		for (int i = 0; i < baseList.size(); i++) {
 			newList.add(baseList.get(i));
 		}
